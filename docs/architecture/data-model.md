@@ -433,3 +433,203 @@ Scheduled scans
 Notifications
 Risk acceptance
 Exception management
+
+---
+
+## 13. Database Schema
+
+This section defines the initial relational database schema for SecureAssure.
+
+The schema is designed for SQLite during development and remains compatible
+with migration to PostgreSQL or another production relational database.
+
+### 13.1 assets
+
+Stores security-relevant systems, hosts, devices, applications, and other
+assessable resources.
+
+| Column | Type | Nullable | Constraints |
+|---|---|---:|---|
+| id | Integer | No | Primary Key |
+| ip_address | String(45) | Yes | Indexed |
+| hostname | String(255) | Yes | Indexed |
+| operating_system | String(255) | Yes | |
+| asset_type | String(50) | No | |
+| criticality | String(20) | No | |
+| owner | String(255) | Yes | |
+| status | String(30) | No | |
+| description | Text | Yes | |
+| created_at | DateTime | No | |
+| updated_at | DateTime | No | |
+
+### 13.2 services
+
+Stores network services discovered on assets.
+
+| Column | Type | Nullable | Constraints |
+|---|---|---:|---|
+| id | Integer | No | Primary Key |
+| asset_id | Integer | No | Foreign Key → assets.id |
+| port | Integer | No | |
+| protocol | String(10) | No | |
+| service_name | String(100) | Yes | |
+| service_version | String(255) | Yes | |
+| state | String(30) | No | |
+| discovered_at | DateTime | No | |
+
+### 13.3 scans
+
+Stores security discovery and assessment operations.
+
+| Column | Type | Nullable | Constraints |
+|---|---|---:|---|
+| id | Integer | No | Primary Key |
+| scanner | String(50) | No | |
+| scan_type | String(50) | No | |
+| target | String(255) | No | |
+| status | String(30) | No | |
+| configuration | Text | Yes | |
+| error_message | Text | Yes | |
+| started_at | DateTime | Yes | |
+| completed_at | DateTime | Yes | |
+| created_at | DateTime | No | |
+
+### 13.4 findings
+
+Stores security issues identified during assessments.
+
+| Column | Type | Nullable | Constraints |
+|---|---|---:|---|
+| id | Integer | No | Primary Key |
+| asset_id | Integer | No | Foreign Key → assets.id |
+| service_id | Integer | Yes | Foreign Key → services.id |
+| scan_id | Integer | Yes | Foreign Key → scans.id |
+| title | String(255) | No | |
+| description | Text | No | |
+| severity | String(20) | No | Indexed |
+| status | String(30) | No | Indexed |
+| detection_source | String(100) | No | |
+| recommendation | Text | Yes | |
+| detected_at | DateTime | No | |
+| updated_at | DateTime | No | |
+
+### 13.5 risk_assessments
+
+Stores risk calculations and CIA impact assessments for findings.
+
+| Column | Type | Nullable | Constraints |
+|---|---|---:|---|
+| id | Integer | No | Primary Key |
+| finding_id | Integer | No | Foreign Key → findings.id, Unique |
+| likelihood | Integer | No | 1–5 |
+| impact | Integer | No | 1–5 |
+| confidentiality | Integer | No | 1–5 |
+| integrity | Integer | No | 1–5 |
+| availability | Integer | No | 1–5 |
+| risk_score | Integer | No | |
+| risk_level | String(20) | No | |
+| assessment_method | String(100) | No | |
+| assessed_at | DateTime | No | |
+
+Initial risk calculation:
+
+```text
+Risk Score = Likelihood × Impact
+13.6 security_controls
+
+Stores security controls used to reduce or manage security risk.
+
+Column	Type	Nullable	Constraints
+id	Integer	No	Primary Key
+control_code	String(50)	No	Unique
+name	String(255)	No	
+category	String(100)	No	
+description	Text	No	
+framework	String(100)	Yes	
+implementation_status	String(30)	No	
+created_at	DateTime	No	
+updated_at	DateTime	No	
+13.7 finding_controls
+
+Association table for the many-to-many relationship between findings
+and security controls.
+
+Column	Type	Nullable	Constraints
+finding_id	Integer	No	Foreign Key → findings.id
+control_id	Integer	No	Foreign Key → security_controls.id
+
+Primary key:
+
+(finding_id, control_id)
+13.8 evidence
+
+Stores technical evidence supporting security findings.
+
+Column	Type	Nullable	Constraints
+id	Integer	No	Primary Key
+finding_id	Integer	No	Foreign Key → findings.id
+source	String(100)	No	
+command	Text	Yes	
+observed_value	Text	Yes	
+expected_value	Text	Yes	
+evidence_type	String(50)	No	
+collected_at	DateTime	No	
+13.9 remediations
+
+Tracks remediation activities associated with findings.
+
+Column	Type	Nullable	Constraints
+id	Integer	No	Primary Key
+finding_id	Integer	No	Foreign Key → findings.id
+recommendation	Text	No	
+assigned_to	String(255)	Yes	
+priority	String(20)	No	
+status	String(30)	No	
+due_date	DateTime	Yes	
+started_at	DateTime	Yes	
+completed_at	DateTime	Yes	
+verification_at	DateTime	Yes	
+14. Database Relationships
+
+The relational structure is:
+
+assets
+  │
+  ├──────────────< services
+  │
+  └──────────────< findings
+                       │
+                       ├────────────── risk_assessments
+                       │
+                       ├──────────────< evidence
+                       │
+                       ├──────────────< remediations
+                       │
+                       └──────────────< finding_controls >──────── security_controls
+                       
+scans ────────────────< findings
+Relationship Summary
+Relationship	Type
+Asset → Service	One-to-Many
+Asset → Finding	One-to-Many
+Scan → Finding	One-to-Many
+Service → Finding	One-to-Many
+Finding → Risk Assessment	One-to-One
+Finding → Evidence	One-to-Many
+Finding → Remediation	One-to-Many
+Finding → Security Control	Many-to-Many
+15. Initial Database Constraints
+
+The initial schema will enforce:
+
+Primary keys on all main entities.
+Foreign keys for all entity relationships.
+Unique control codes.
+One risk assessment per finding.
+Composite primary key for finding_controls.
+Indexed asset IP addresses.
+Indexed hostnames.
+Indexed finding severity.
+Indexed finding status.
+Valid risk values from 1 through 5.
+Required timestamps for security events.
