@@ -88,3 +88,9 @@ class Finding(Base):
     scan: Mapped["Scan | None"] = relationship(
         back_populates="findings",
     )
+
+    risk_assessment: Mapped["RiskAssessment | None"] = relationship(
+    back_populates="finding",
+    uselist=False,
+    cascade="all, delete-orphan",
+)

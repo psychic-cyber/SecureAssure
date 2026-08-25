@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from backend.app.api.v1.health import router as health_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import initialize_database
-from backend.app.models import Asset, Finding, Scan, Service
+from backend.app.models import Asset, Finding, RiskAssessment, Scan, Service
 
 settings = get_settings()
 
