@@ -70,7 +70,7 @@ class Asset(Base):
         nullable=False,
     )
 
-    services: Mapped[list["Service"]] = relationship(
-        back_populates="asset",
-        cascade="all, delete-orphan",
-    )
+    findings: Mapped[list["Finding"]] = relationship(
+    back_populates="asset",
+    cascade="all, delete-orphan",
+)
