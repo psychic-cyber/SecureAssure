@@ -74,3 +74,9 @@ class Asset(Base):
     back_populates="asset",
     cascade="all, delete-orphan",
 )
+
+    services = relationship(
+    "Service",
+    back_populates="asset",
+    cascade="all, delete-orphan",
+)

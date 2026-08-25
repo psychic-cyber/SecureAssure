@@ -94,3 +94,8 @@ class Finding(Base):
     uselist=False,
     cascade="all, delete-orphan",
 )
+
+    security_controls: Mapped[list["SecurityControl"]] = relationship(
+    secondary="finding_controls",
+    back_populates="findings",
+)

@@ -1,4 +1,5 @@
 from sqlalchemy import inspect
+from sqlalchemy.orm import Session
 
 from backend.app.core.database import engine
 from backend.app.models import Asset, Service
@@ -106,3 +107,104 @@ def test_risk_assessment_finding_is_unique():
     ]
 
     assert ["finding_id"] in unique_columns
+
+def test_security_controls_table_exists():
+    inspector = inspect(engine)
+
+    assert "security_controls" in inspector.get_table_names()
+
+
+def test_finding_controls_table_exists():
+    inspector = inspect(engine)
+
+    assert "finding_controls" in inspector.get_table_names()
+
+
+def test_security_control_model_is_registered():
+    from backend.app.models import SecurityControl
+
+    assert SecurityControl.__tablename__ == "security_controls"
+
+
+def test_security_control_code_is_unique():
+    inspector = inspect(engine)
+
+    indexes = inspector.get_indexes("security_controls")
+
+    unique_columns = [
+        index["column_names"]
+        for index in indexes
+        if index["unique"]
+    ]
+
+    assert ["control_code"] in unique_columns
+
+
+def test_finding_controls_foreign_keys():
+    inspector = inspect(engine)
+
+    foreign_keys = inspector.get_foreign_keys("finding_controls")
+
+    foreign_key_map = {
+        fk["constrained_columns"][0]: fk["referred_table"]
+        for fk in foreign_keys
+    }
+
+    assert foreign_key_map["finding_id"] == "findings"
+    assert foreign_key_map["control_id"] == "security_controls"
+
+
+def test_finding_controls_composite_primary_key():
+    inspector = inspect(engine)
+
+    primary_key = inspector.get_pk_constraint("finding_controls")
+
+    assert set(primary_key["constrained_columns"]) == {
+        "finding_id",
+        "control_id",
+    }
+
+
+def test_finding_security_control_relationship():
+    from backend.app.models import Asset, Finding, SecurityControl
+
+    session = Session(engine)
+
+    asset = Asset(
+        ip_address="192.168.56.101",
+        hostname="test-host",
+        operating_system="Kali Linux",
+        asset_type="SERVER",
+        criticality="HIGH",
+        status="ACTIVE",
+    )
+
+    finding = Finding(
+        title="Test Security Finding",
+        description="Test finding for security control mapping.",
+        severity="HIGH",
+        status="OPEN",
+        detection_source="TEST",
+        asset=asset,
+    )
+
+    control = SecurityControl(
+        control_code="TEST-AC-01",
+        name="Test Access Control",
+        category="Preventive",
+        description="Test security control.",
+        framework="SecureAssure",
+        implementation_status="IMPLEMENTED",
+    )
+
+    finding.security_controls.append(control)
+
+    session.add(finding)
+    session.commit()
+
+    session.refresh(finding)
+
+    assert len(finding.security_controls) == 1
+    assert finding.security_controls[0].control_code == "TEST-AC-01"
+
+    session.close()
