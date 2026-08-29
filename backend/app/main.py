@@ -6,6 +6,7 @@ from backend.app.core.database import initialize_database
 from backend.app.models import (
     Asset,
     Finding,
+    Remediation,
     RiskAssessment,
     Scan,
     SecurityControl,

@@ -101,7 +101,13 @@ class Finding(Base):
 )
 
     evidence = relationship(
-    "Evidence",
-    back_populates="finding",
-    cascade="all, delete-orphan",
-)
+        "Evidence",
+        back_populates="finding",
+        cascade="all, delete-orphan",
+    )
+
+    remediations = relationship(
+        "Remediation",
+        back_populates="finding",
+        cascade="all, delete-orphan",
+    )
