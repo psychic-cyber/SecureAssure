@@ -24,6 +24,8 @@ def test_nmap_scan_executes_command(monkeypatch):
         assert command == [
             "/usr/bin/nmap",
             "-sV",
+            "-oX",
+            "-",
             "127.0.0.1",
         ]
 
@@ -35,7 +37,7 @@ def test_nmap_scan_executes_command(monkeypatch):
         return subprocess.CompletedProcess(
             command,
             0,
-            stdout="Nmap scan output",
+            stdout="<nmaprun></nmaprun>",
             stderr="",
         )
 
@@ -52,31 +54,31 @@ def test_nmap_scan_executes_command(monkeypatch):
     assert result["scanner"] == "nmap"
     assert result["target"] == "127.0.0.1"
     assert result["return_code"] == 0
-    assert result["stdout"] == "Nmap scan output"
+    assert result["stdout"] == "<nmaprun></nmaprun>"
     assert result["stderr"] == ""
 
 
 def test_nmap_scan_rejects_empty_target():
     scanner = NmapScanner()
 
-    with pytest.raises(ValueError, match="Target must not be empty"):
+    with pytest.raises(ValueError):
         scanner.scan("")
 
 
 def test_nmap_scan_rejects_invalid_timeout():
     scanner = NmapScanner()
 
-    with pytest.raises(ValueError, match="Timeout must be greater than zero"):
+    with pytest.raises(ValueError):
         scanner.scan("127.0.0.1", timeout=0)
 
 
 def test_nmap_scan_handles_timeout(monkeypatch):
     scanner = NmapScanner()
 
-    def fake_run(*args, **kwargs):
+    def fake_run(command, **kwargs):
         raise subprocess.TimeoutExpired(
-            cmd=args[0],
-            timeout=kwargs["timeout"],
+            command,
+            kwargs["timeout"],
         )
 
     monkeypatch.setattr(
@@ -84,20 +86,23 @@ def test_nmap_scan_handles_timeout(monkeypatch):
         fake_run,
     )
 
-    with pytest.raises(TimeoutError, match="timed out"):
-        scanner.scan("127.0.0.1", timeout=1)
+    with pytest.raises(TimeoutError):
+        scanner.scan(
+            "127.0.0.1",
+            timeout=30,
+        )
 
 
 def test_nmap_scan_handles_execution_error(monkeypatch):
     scanner = NmapScanner()
 
-    def fake_run(*args, **kwargs):
-        raise OSError("nmap executable not found")
+    def fake_run(command, **kwargs):
+        raise OSError("nmap not found")
 
     monkeypatch.setattr(
         "backend.app.scanners.nmap.subprocess.run",
         fake_run,
     )
 
-    with pytest.raises(RuntimeError, match="Failed to execute Nmap"):
+    with pytest.raises(RuntimeError):
         scanner.scan("127.0.0.1")

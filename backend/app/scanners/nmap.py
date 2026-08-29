@@ -9,7 +9,7 @@ class NmapScanner(Scanner):
     Nmap scanner implementation.
 
     Executes authorized Nmap scans and returns
-    the raw scan output.
+    raw XML scan output together with execution metadata.
     """
 
     def scanner_name(self) -> str:
@@ -27,13 +27,14 @@ class NmapScanner(Scanner):
         Execute an authorized Nmap scan.
 
         Returns:
-            A normalized result containing:
-            - scanner
-            - target
-            - command
-            - return_code
-            - stdout
-            - stderr
+            {
+                "scanner": "nmap",
+                "target": "...",
+                "command": [...],
+                "return_code": 0,
+                "stdout": "...",
+                "stderr": "..."
+            }
         """
 
         if not target or not target.strip():
@@ -43,7 +44,12 @@ class NmapScanner(Scanner):
             raise ValueError("Timeout must be greater than zero.")
 
         if arguments is None:
-            arguments = ["-sV"]
+            arguments = ["-sV", "-oX", "-"]
+        else:
+            arguments = list(arguments)
+
+            if "-oX" not in arguments:
+                arguments.extend(["-oX", "-"])
 
         command = [
             "/usr/bin/nmap",
