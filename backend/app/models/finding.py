@@ -99,3 +99,9 @@ class Finding(Base):
     secondary="finding_controls",
     back_populates="findings",
 )
+
+    evidence = relationship(
+    "Evidence",
+    back_populates="finding",
+    cascade="all, delete-orphan",
+)

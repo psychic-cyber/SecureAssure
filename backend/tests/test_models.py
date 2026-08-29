@@ -166,9 +166,13 @@ def test_finding_controls_composite_primary_key():
 
 
 def test_finding_security_control_relationship():
+    from uuid import uuid4
+
     from backend.app.models import Asset, Finding, SecurityControl
 
     session = Session(engine)
+
+    unique_code = f"TEST-AC-{uuid4().hex[:8].upper()}"
 
     asset = Asset(
         ip_address="192.168.56.101",
@@ -189,7 +193,7 @@ def test_finding_security_control_relationship():
     )
 
     control = SecurityControl(
-        control_code="TEST-AC-01",
+        control_code=unique_code,
         name="Test Access Control",
         category="Preventive",
         description="Test security control.",
@@ -201,10 +205,9 @@ def test_finding_security_control_relationship():
 
     session.add(finding)
     session.commit()
-
     session.refresh(finding)
 
     assert len(finding.security_controls) == 1
-    assert finding.security_controls[0].control_code == "TEST-AC-01"
+    assert finding.security_controls[0].control_code == unique_code
 
     session.close()
