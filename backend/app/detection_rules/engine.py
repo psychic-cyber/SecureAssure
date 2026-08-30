@@ -28,6 +28,12 @@ class DetectionRuleEngine:
             finding = rule.evaluate(service)
 
             if finding is not None:
+                finding = {
+                    **finding,
+                    "port": service.get("port"),
+                    "protocol": service.get("protocol"),
+                }
+
                 findings.append(finding)
 
         return findings
